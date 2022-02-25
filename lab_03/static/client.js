@@ -9,6 +9,7 @@ function validateLogin() {
   let password = document.forms["login"]["password"].value;
 
 
+
   if (email == "") {
     document.getElementById('log').innerHTML = "Username cannot be empty!";
     return false;
@@ -28,9 +29,30 @@ function validateLogin() {
     return false;
   }
 
-  let dataObject = {"email" : email, "password" : password}
-  let a = serverstub.signIn(email, password);
-  let token;
+  let user = {"email" : email, "password" : password}
+  let request = new XMLHttpRequest();
+  request.open("POST", "/user/signin", true);
+
+  request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  request.onreadystatechange = function(){
+    if (this.readyState == 4){
+      if (this.status == 200){
+        document.getElementById("log").innerHTML = "<h3>Correctly signed in!</h3>";
+        let arr = JSON.parse(request.responseText)
+        document.getElementById("token").innerHTML = arr.token;
+        console.log(arr.token);
+        document.getElementById("welcome").innerHTML = document.getElementById("profileview").textContent;
+      }else if (request.status == 400){
+        document.getElementById("log").innerHTML = "<h3>Bad request!</h3>";
+      }else if (request.status == 500){
+        document.getElementById("log").innerHTML = "<h3>Wrong username or password!</h3>";
+      }
+    }
+  }
+
+  request.send(JSON.stringify(user));
+
+/*
   document.getElementById('log').innerHTML = a.message;
   token = a.data;
   console.log(token);
@@ -41,6 +63,9 @@ function validateLogin() {
     document.getElementById("emailNow").textContent = email;
     validateGetMessages();
   }
+  */
+
+
 }
 
 function validateSignUp() {
@@ -100,9 +125,26 @@ function validateSignUp() {
   }
 
 
-  let dataObject = {"email" : email, "password" : password, "firstname" : firstname, "familyname" : familyname, "gender" : gender, "city" : city, "country" : country}
-  console.log(dataObject);
-  document.getElementById('log').innerHTML = serverstub.signUp(dataObject).message;
+  let user = {"email" : email, "password" : password, "firstname" : firstname, "familyname" : familyname, "gender" : gender, "city" : city, "country" : country}
+
+
+  let request = new XMLHttpRequest();
+  request.open("POST", "/user/signup", true);
+
+  request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  request.onreadystatechange = function(){
+    if (this.readyState == 4){
+      if (this.status == 201){
+        document.getElementById("log").innerHTML = "<h3>User correctly created!</h3>";
+      }else if (request.status == 400){
+        document.getElementById("log").innerHTML = "<h3>Bad request!</h3>";
+      }else if (request.status == 409){
+        document.getElementById("log").innerHTML = "<h3>User already exists!</h3>";
+      }
+    }
+  }
+
+  request.send(JSON.stringify(user));
 }
 
 //TABS
@@ -131,16 +173,39 @@ function openTab(evt, tabName) {
 
 function pswCheck(){
   let oldPassword = document.forms["changePsw"]["oldPassword"].value;
-  let password = document.forms["changePsw"]["password"].value;
+  let newpassword = document.forms["changePsw"]["password"].value;
   let pswConfirm = document.forms["changePsw"]["rPassword"].value;
   let tokendiv = document.getElementById("token");
   let token = tokendiv.textContent;
+  console.log(token);
 
-  if(password != pswConfirm){
+
+  let dataObject = {"token" : token, "password" : oldPassword, "newpassword" : newpassword}
+  console.log(dataObject);
+
+  if(newpassword != pswConfirm || newpassword == "" || pswConfirm ==""){
     document.getElementById('logA').innerHTML = "Passwords should be equal!";
     return false;
   }
-  document.getElementById('logA').innerHTML = serverstub.changePassword(token, oldPassword, password).message;
+
+  let request = new XMLHttpRequest();
+  request.open("PUT", "/user/changepassword", true);
+
+  request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  request.onreadystatechange = function(){
+    if (this.readyState == 4){
+      if (this.status == 201){
+        document.getElementById("logA").innerHTML = "<h3>Password correctly changed!</h3>";
+      }else if (request.status == 400){
+        document.getElementById("logA").innerHTML = "<h3>Bad request!</h3>";
+      }else if (request.status == 500){
+        document.getElementById("logA").innerHTML = "<h3>Something bad happened!</h3>";
+      }
+    }
+  }
+
+  request.send(JSON.stringify(dataObject));
+
 }
 
 function validateSignOut(){

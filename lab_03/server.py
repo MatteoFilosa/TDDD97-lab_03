@@ -2,6 +2,9 @@ from flask import Flask, jsonify, request
 import binascii
 import os
 import database_helper
+import sys
+
+#sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 app = Flask(__name__)
 
@@ -15,6 +18,10 @@ tokenDic = {
 @app.teardown_request
 def after_request(exception):
     database_helper.disconnect_db()
+
+@app.route('/')
+def index():
+    return app.send_static_file('client.html')
 
 @app.route('/user/signup', methods = ['POST'])
 def sign_up():
@@ -71,8 +78,8 @@ def change_password():
 
     json = request.get_json()
     if "token" in json and "password" in json and "newpassword" in json:
-        if len(json['token'])< 30 and len(json['password']) < 30 and len(json['newpassword']) < 30:
-            result = database_helper.new_password(tokenDic['token'], json['password'], json['newpassword'])
+        if len(json['token'])< 30 and len(json['password']) < 30 and len(json['newpassword']) < 30 and json['token']==tokenDic['token']:
+            result = database_helper.new_password(json["token"], json['password'], json['newpassword'])
             if result == True:
                 return "{}", 201
             else:
