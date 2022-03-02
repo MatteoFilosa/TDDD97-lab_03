@@ -36,7 +36,7 @@ def create_user(email, password, firstname, familyname, gender, city, country):
         get_db().commit()
         return True
     except:  #FIX Exception
-        
+
         return False
 
 
@@ -45,6 +45,17 @@ def find_user(email, password):
 
     loggedInUser["email"] = email
     cursor = get_db().execute("select * from user where user.email = ? and password = ?", [email, password])
+    rows = cursor.fetchall()
+    cursor.close()
+    print(rows)
+    if rows:
+        return True
+    else:
+        return False
+
+def find_user_byemail(email):
+
+    cursor = get_db().execute("select * from user where email = ?", [email])
     rows = cursor.fetchall()
     cursor.close()
     print(rows)
@@ -68,7 +79,7 @@ def new_password(token, password, newpassword):
 
 def message_help(token, message, email):
 
-    cursor = get_db().execute("select * from user where user.email = ?", [email])
+    cursor = get_db().execute("select * from user where email = ?", [email])
     rows = cursor.fetchall()
     cursor.close()
     if rows: #user exists
@@ -82,7 +93,7 @@ def message_help(token, message, email):
 def retrieve_data_token(token):
 
     email = token_to_email(token)
-    cursor = get_db().execute("select email, firstname, firstname, gender, city, country from user where user.email = ?", [email])
+    cursor = get_db().execute("select * from user where user.email = ?", [email])
     rows = cursor.fetchall()
     cursor.close()
     print(rows)
@@ -92,20 +103,20 @@ def retrieve_data_token(token):
         return False
 
 def retrieve_data_email(token, email):
-
-    cursor = get_db().execute("select email, firstname, firstname, gender, city, country from user where user.email = ?", [email])
-    rows = cursor.fetchall()
-    cursor.close()
-    print(rows)
-    if rows:
+    try:
+        cursor = get_db().execute("select * from user where email = ?", [email])
+        rows = cursor.fetchall()
+        cursor.close()
+        print(rows)
         return rows
-    else:
+    except sqlite3.DatabaseError as err:
+        print(err)
         return False
 
 def retrieve_messages_token(token):
 
     email = token_to_email(token)
-    cursor = get_db().execute("select message from messages where email = ?", [email])
+    cursor = get_db().execute("select * from messages where email = ?", [email])
     rows = cursor.fetchall()
     cursor.close()
     print(rows)
@@ -117,7 +128,7 @@ def retrieve_messages_token(token):
 def retrieve_messages_email(token, email):
 
 
-    cursor = get_db().execute("select message from messages where email = ?", [email])
+    cursor = get_db().execute("select * from messages where email = ?", [email])
     rows = cursor.fetchall()
     cursor.close()
     print(rows)

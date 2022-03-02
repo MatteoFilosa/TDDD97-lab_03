@@ -67,7 +67,7 @@
         <div id="infos">
         </div>
 
-        <button class="infos" onclick="validateGetMessages(this);">Refresh</button>
+        <button class="infos" onclick="validateGetMessages();">Refresh</button>
         <div id="messagesWall">
 
         </div>
@@ -83,7 +83,7 @@
         <button class="insertUser" onclick="validateGetUserDetails();">Confirm</button>
 
         <div id="result" style="display:none">
-            <button class="infos" onclick="loadInfosBrowse(this);">Load Infos</button>
+            <button class="infos" onclick="loadInfosBrowse();">Load Infos</button>
 
         Post message:
           <textarea id="messagesBrowse" name="messagesBrowse" rows="4" cols="50">
@@ -110,7 +110,7 @@
       <div id="Account" class="tabcontent" style="display:none">
         <h2>Account</h2>
 
-        <form name ="changePsw" id="changePsw" onsubmit="pswCheck(this);return false;">
+        <form name ="changePsw" id="changePsw" onsubmit="pswCheck();return false;">
           Old password<input type="password" id="oldPassword" name="oldPassword">
           New password<input type="password" id="password" name="password">
           Repeat new password<input type="password" id="rPassword" name="rPassword">

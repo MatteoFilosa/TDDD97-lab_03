@@ -1,14 +1,13 @@
 window.onload = function(){
 document.getElementById("welcome").innerHTML = document.getElementById("welcomeview").textContent;
 }
-
-
+//
+let tokenClient;
+let emailClient;
 function validateLogin() {
 
   let email = document.forms["login"]["username"].value;
   let password = document.forms["login"]["password"].value;
-
-
 
   if (email == "") {
     document.getElementById('log').innerHTML = "Username cannot be empty!";
@@ -32,15 +31,18 @@ function validateLogin() {
   let user = {"email" : email, "password" : password}
   let request = new XMLHttpRequest();
   request.open("POST", "/user/signin", true);
-
+  // create web socket
+  // websocket, token, email (array, duplicate user-->sign out)
   request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
   request.onreadystatechange = function(){
     if (this.readyState == 4){
       if (this.status == 200){
         document.getElementById("log").innerHTML = "<h3>Correctly signed in!</h3>";
         let arr = JSON.parse(request.responseText)
-        document.getElementById("token").innerHTML = arr.token;
-        console.log(arr.token);
+        tokenClient = arr.token;
+        emailClient = email;
+        //document.getElementById("token").innerHTML = arr.token;
+        //console.log(arr.token);
         document.getElementById("welcome").innerHTML = document.getElementById("profileview").textContent;
       }else if (request.status == 400){
         document.getElementById("log").innerHTML = "<h3>Bad request!</h3>";
@@ -65,7 +67,7 @@ function validateLogin() {
   }
   */
 
-
+  validateGetMessages();
 }
 
 function validateSignUp() {
@@ -136,6 +138,7 @@ function validateSignUp() {
     if (this.readyState == 4){
       if (this.status == 201){
         document.getElementById("log").innerHTML = "<h3>User correctly created!</h3>";
+        console.log(user)
       }else if (request.status == 400){
         document.getElementById("log").innerHTML = "<h3>Bad request!</h3>";
       }else if (request.status == 409){
@@ -175,12 +178,11 @@ function pswCheck(){
   let oldPassword = document.forms["changePsw"]["oldPassword"].value;
   let newpassword = document.forms["changePsw"]["password"].value;
   let pswConfirm = document.forms["changePsw"]["rPassword"].value;
-  let tokendiv = document.getElementById("token");
-  let token = tokendiv.textContent;
-  console.log(token);
+  //let tokendiv = document.getElementById("token");
+  //let token = tokendiv.textContent;
 
 
-  let dataObject = {"token" : token, "password" : oldPassword, "newpassword" : newpassword}
+  let dataObject = {"token" : tokenClient, "password" : oldPassword, "newpassword" : newpassword}
   console.log(dataObject);
 
   if(newpassword != pswConfirm || newpassword == "" || pswConfirm ==""){
@@ -209,90 +211,203 @@ function pswCheck(){
 }
 
 function validateSignOut(){
-  let tokendiv = document.getElementById("token");
-  let token = tokendiv.textContent;
+  tokenClient = '';
   document.getElementById("welcome").innerHTML = document.getElementById("welcomeview").textContent;
 
 }
 
 function loadInfos(){
-    let tokendiv = document.getElementById("token");
-    let token = tokendiv.textContent;
-    document.getElementById('logB').innerHTML = serverstub.getUserDataByToken(token).message;
-    let a = serverstub.getUserDataByToken(token).data;
-    let b = JSON.stringify(a);
-    document.getElementById('infos').innerHTML = b;
+  let result = [];
+  let request = new XMLHttpRequest();
+  let dataObject = {"token" : tokenClient}
+  request.open("GET", "/user/getuserdatabytoken", true);
+
+
+  request.onreadystatechange = function(){
+    if (this.readyState == 4){
+      if (this.status == 200){
+        result = JSON.parse(request.responseText);
+        let output = "";
+        console.log(result);
+        result.forEach(function(c){
+            output = output + "<h3>Email: " +c.email+ ", Firstname: " + c.firstname  + ", Familyname: " +c.familyname + ", Gender: " +c.gender + ", City: " +c.city + ", Country: " +c.country + "</h3>"
+        });
+        document.getElementById("infos").innerHTML = output;
+      }else if (request.status == 400){
+        document.getElementById("logB").innerHTML = "<h3>Bad request!</h3>";
+      }else if (request.status == 500){
+        document.getElementById("logB").innerHTML = "<h3>User not found!</h3>";
+      }
+    }
+  }
+
+  request.send();
 }
 
 function validateMessage(){
-    let tokendiv = document.getElementById("token");
-    let token = tokendiv.textContent;
+
     let content = document.getElementById("messages").value;
-    let toEmail = document.getElementById("emailNow").textContent;
-    console.log(toEmail);
-    document.getElementById('logB').innerHTML = serverstub.postMessage(token, content, toEmail).message;
-    document.getElementById('messagesWall').innerHTML += content + " : " + toEmail;
+    if (content == ""){
+      document.getElementById("logA").innerHTML = "<h3>Cannot insert an empty message!</h3>";
+      return false;
+    }
+    if (content.length>150){
+      document.getElementById("logA").innerHTML = "<h3>Very big message! Try something < 150 characters!</h3>";
+      return false;
+    }
+    let dataObject = {"token" : tokenClient, "message" : content, "email" : emailClient}
+    console.log(dataObject);
+    let request = new XMLHttpRequest();
+    request.open("PUT", "/user/postmessage", true);
+
+    request.onreadystatechange = function(){
+      if (this.readyState == 4){
+        if (this.status == 201){
+          document.getElementById("logB").innerHTML = "<h3>Message posted!</h3>";
+        }else if (request.status == 400){
+          document.getElementById("logB").innerHTML = "<h3>Bad request!</h3>";
+        }else if (request.status == 500){
+          console.log(dataObject);
+          document.getElementById("logB").innerHTML = "<h3>Something bad happened!</h3>";
+        }
+      }
+    }
+    request.send(JSON.stringify(dataObject));
+
+    document.getElementById('messagesWall').innerHTML += content + " : " + emailClient;
 }
 
 function validateGetMessages(){
-    let tokendiv = document.getElementById("token");
-    let token = tokendiv.textContent;
-    document.getElementById('logB').innerHTML = serverstub.getUserMessagesByToken(token).message;
-    let a = serverstub.getUserMessagesByToken(token).data;
-    let b = JSON.stringify(a);
-    document.getElementById('messagesWall').innerHTML = b;
+
+
+  let request = new XMLHttpRequest();
+
+  request.open("GET", "/user/getusermessagesbytoken", true);
+  request.onreadystatechange = function(){
+    if (this.readyState == 4){
+      if (this.status == 200){
+        result = JSON.stringify(request.responseText);
+        console.log(result);
+        document.getElementById("messagesWall").innerHTML = result;
+      }else if (request.status == 400){
+        document.getElementById("logB").innerHTML = "<h3>Bad request!</h3>";
+      }else if (request.status == 500){
+        document.getElementById("logB").innerHTML = "<h3>User not found!</h3>";
+      }
+    }
+  }
+  request.send();
 }
 
 // BROWSE FUNCTIONS
 function validateGetUserDetails(){
+  let targetDiv=document.getElementById("result");
+  let email = document.getElementById("insertUser").value;
+  if(email == '' || email.length > 30){
+    document.getElementById("logC").innerHTML = "<h3>Insert a valid email!</h3>"
+    return false;
+  }
+  console.log(email);
+  let request = new XMLHttpRequest();
 
-    let targetDiv=document.getElementById("result");
-    let email = document.getElementById("insertUser").value;
-    let tokendiv = document.getElementById("token");
-    let token = tokendiv.textContent;
-    document.getElementById('selectedUserMail').innerHTML = email;
-
-    if(serverstub.getUserDataByEmail(token,email).success == false){
-      document.getElementById('logC').innerHTML = "Selected user does not exist.";
+  request.open("POST", "/user/checkuser", true);
+  request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  request.onreadystatechange = function(){
+    if (this.readyState == 4){
+      if (this.status == 200){
+        targetDiv.style.display = "block";
+      }else if (request.status == 500){
+        document.getElementById("logC").innerHTML = "<h3>User not found!</h3>";
+      }
     }
+  }
 
-    else{
-      targetDiv.style.display = "block";
-    }
+  request.send(JSON.stringify(email));
+
 
 }
 
 function loadInfosBrowse(){
-    let tokendiv = document.getElementById("token");
-    let token = tokendiv.textContent;
-    let emaildiv = document.getElementById("selectedUserMail");
-    let toEmail = emaildiv.textContent;
-    console.log(toEmail);
-    document.getElementById('logC').innerHTML = serverstub.getUserDataByEmail(token, toEmail).message;
-    let a = serverstub.getUserDataByEmail(token, toEmail).data;
-    let b = JSON.stringify(a);
-    document.getElementById('infosBrowse').innerHTML = b;
+  let result = [];
+  let email = document.getElementById("insertUser").value;
+  let request = new XMLHttpRequest(); //through url or header
+  request.open("GET", "/user/getuserdatabyemail/" + email, true);
+
+  request.onreadystatechange = function(){
+    if (this.readyState == 4){
+      if (this.status == 200){
+        result = JSON.parse(request.responseText);
+        let output = "";
+        console.log(result);
+        result.forEach(function(c){
+            output = output + "<h3>Email: " +c.email+ ", Firstname: " + c.firstname  + ", Familyname: " +c.familyname + ", Gender: " +c.gender + ", City: " +c.city + ", Country: " +c.country + "</h3>"
+        });
+        document.getElementById("infosBrowse").innerHTML = output;
+      }else if (request.status == 500){
+        document.getElementById("logC").innerHTML = "<h3>User not found!</h3>";
+      }else if (request.status == 400){
+        document.getElementById("logC").innerHTML = "<h3>Bad request!</h3>";
+      }
+    }
+  }
+
+  request.send();
+
 }
 
 
 function validatePostMessageBrowse(){
-    let tokendiv = document.getElementById("token");
-    let token = tokendiv.textContent;
-    let emaildiv = document.getElementById("selectedUserMail");
-    let toEmail = emaildiv.textContent;
-    let content = document.getElementById("messagesBrowse").value;
-    console.log(toEmail);
-    document.getElementById('logC').innerHTML = serverstub.postMessage(token, content, toEmail).message;
+
+  let email = document.getElementById("insertUser").value;
+  let content = document.getElementById("messagesBrowse").value;
+  if (content == ""){
+    document.getElementById("logA").innerHTML = "<h3>Cannot insert an empty message!</h3>";
+    return false;
+  }
+  if (content.length>150){
+    document.getElementById("logA").innerHTML = "<h3>Very big message! Try something < 150 characters!</h3>";
+    return false;
+  }
+  let dataObject = {"token" : tokenClient, "message" : content, "email" : email}
+  console.log(dataObject);
+  let request = new XMLHttpRequest();
+  request.open("PUT", "/user/postmessage", true);
+
+  request.onreadystatechange = function(){
+    if (this.readyState == 4){
+      if (this.status == 201){
+        document.getElementById("logC").innerHTML = "<h3>Message posted!</h3>";
+      }else if (request.status == 400){
+        document.getElementById("logC").innerHTML = "<h3>Bad request!</h3>";
+      }else if (request.status == 500){
+        console.log(dataObject);
+        document.getElementById("logC").innerHTML = "<h3>Something bad happened!</h3>";
+      }
+    }
+  }
+  request.send(JSON.stringify(dataObject));
+
+  document.getElementById('messagesWallBrowse').innerHTML += content + " : " + emailClient;
 }
 
-function validateGetMessagesBrowse(){
-    let tokendiv = document.getElementById("token");
-    let token = tokendiv.textContent;
-    let emaildiv = document.getElementById("selectedUserMail");
-    let toEmail = emaildiv.textContent;
 
-    document.getElementById('logC').innerHTML = serverstub.getUserMessagesByEmail(token, toEmail).message;
-    let a = serverstub.getUserMessagesByEmail(token, toEmail).data;
-    let b = JSON.stringify(a);
-    document.getElementById('messagesWallBrowse').innerHTML = b;
+function validateGetMessagesBrowse(){
+  let request = new XMLHttpRequest();
+  let email = document.getElementById("insertUser").value;
+
+  request.open("GET", "/user/getusermessagesbyemail/" + email , true);
+  request.onreadystatechange = function(){
+    if (this.readyState == 4){
+      if (this.status == 200){
+        result = JSON.stringify(request.responseText);
+        console.log(result);
+        document.getElementById("messagesWallBrowse").innerHTML = result;
+      }else if (request.status == 400){
+        document.getElementById("logB").innerHTML = "<h3>Bad request!</h3>";
+      }else if (request.status == 500){
+        document.getElementById("logB").innerHTML = "<h3>User not found!</h3>";
+      }
+    }
+  }
+  request.send();
 }
