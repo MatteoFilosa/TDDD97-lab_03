@@ -4,6 +4,7 @@ document.getElementById("welcome").innerHTML = document.getElementById("welcomev
 //
 let tokenClient;
 let emailClient;
+let currentUser;
 function validateLogin() {
 
   let email = document.forms["login"]["username"].value;
@@ -27,10 +28,18 @@ function validateLogin() {
     document.getElementById('log').innerHTML = "Password cannot be shorter than 5 characters.";
     return false;
   }
+  /*
+  const socket = new WebSocket('ws://127.0.0.1:5000');
+
+  socket.addEventListener('open', function (event) {
+    socket.send("Hello Server! We're in sign in now.");
+  });
+  */
 
   let user = {"email" : email, "password" : password}
   let request = new XMLHttpRequest();
   request.open("POST", "/user/signin", true);
+
   // create web socket
   // websocket, token, email (array, duplicate user-->sign out)
   request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
@@ -41,6 +50,8 @@ function validateLogin() {
         let arr = JSON.parse(request.responseText)
         tokenClient = arr.token;
         emailClient = email;
+        //currentUser = {socket, tokenClient, email};
+        console.log(currentUser);
         //document.getElementById("token").innerHTML = arr.token;
         //console.log(arr.token);
         document.getElementById("welcome").innerHTML = document.getElementById("profileview").textContent;

@@ -41,7 +41,7 @@ def create_user(email, password, firstname, familyname, gender, city, country):
 
 
 
-def find_user(email, password):
+def get_password(email, password):
 
     loggedInUser["email"] = email
     cursor = get_db().execute("select * from user where user.email = ? and password = ?", [email, password])
